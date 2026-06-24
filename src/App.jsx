@@ -16,6 +16,16 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 const monthStr = (d = new Date()) => d.toISOString().slice(0, 7);
 const fmtMoney = (n) => "TZS " + Math.round(n).toLocaleString("en-US");
 
+const MATH_FEE = 40000;
+const OTHER_SUBJECT_FEE = 20000;
+
+function calcFee(student) {
+  const subjects = student.subjects || [];
+  return subjects.reduce((total, subj) => {
+    return total + (subj === "Mathematics" ? MATH_FEE : OTHER_SUBJECT_FEE);
+  }, 0);
+}
+
 function Pill({ tone, children }) {
   const map = {
     good: { bg: COLORS.tealBg, fg: "#075452" },
@@ -146,7 +156,6 @@ function TuitionAdmin() {
   const [attendance, setAttendance] = useState({});
   const [payments, setPayments] = useState({});
   const [topics, setTopics] = useState([]);
-  const [feeAmount, setFeeAmount] = useState(25000);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -169,12 +178,11 @@ function TuitionAdmin() {
     setLoading(true);
     setErrorMsg("");
     try {
-      const [studentsRes, attendanceRes, paymentsRes, topicsRes, settingsRes] = await Promise.all([
+      const [studentsRes, attendanceRes, paymentsRes, topicsRes] = await Promise.all([
         supabase.from("students").select("*").order("name"),
         supabase.from("attendance").select("*").eq("date", today),
         supabase.from("payments").select("*").eq("month", thisMonth),
         supabase.from("topics").select("*").order("date", { ascending: false }),
-        supabase.from("settings").select("*").eq("id", 1).single(),
       ]);
 
       if (studentsRes.error) throw studentsRes.error;
@@ -197,10 +205,6 @@ function TuitionAdmin() {
       setPayments(payMap);
 
       setTopics(topicsRes.data || []);
-
-      if (!settingsRes.error && settingsRes.data) {
-        setFeeAmount(settingsRes.data.fee_amount || 25000);
-      }
     } catch (err) {
       setErrorMsg("Couldn't load data. Check your internet connection and try refreshing.");
       console.error(err);
@@ -266,6 +270,7 @@ function TuitionAdmin() {
   const monthPayments = useMemo(() => {
     return students.map((s) => ({
       ...s,
+      fee: calcFee(s),
       payStatus: payments[s.id]?.status || "unpaid",
       method: payments[s.id]?.method || "—",
     }));
@@ -273,8 +278,8 @@ function TuitionAdmin() {
 
   const paidCount = monthPayments.filter((s) => s.payStatus === "paid").length;
   const unpaidStudents = monthPayments.filter((s) => s.payStatus !== "paid");
-  const collected = paidCount * feeAmount;
-  const outstanding = unpaidStudents.length * feeAmount;
+  const collected = monthPayments.filter((s) => s.payStatus === "paid").reduce((sum, s) => sum + s.fee, 0);
+  const outstanding = unpaidStudents.reduce((sum, s) => sum + s.fee, 0);
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
@@ -318,13 +323,6 @@ function TuitionAdmin() {
     setNewTopic({ subject: SUBJECTS[0], teacher: "", date: todayStr(), topic: "" });
     setShowAddTopic(false);
     flashSaved();
-  };
-
-  const updateFee = async (amount) => {
-    setFeeAmount(amount);
-    const { error } = await supabase.from("settings").update({ fee_amount: amount }).eq("id", 1);
-    if (error) { console.error(error); }
-    else flashSaved();
   };
 
   if (loading) return <LoadingScreen />;
@@ -479,19 +477,13 @@ function TuitionAdmin() {
 
         {view === "payments" && (
           <div>
-            <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-              <div>
-                <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600, margin: 0 }}>
-                  Payments — {new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
-                </h1>
-                <p style={{ color: COLORS.slate, fontSize: 13.5, margin: "4px 0 0" }}>
-                  Mark paid as cash or mobile money comes in.
-                </p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label style={{ fontSize: 13, color: COLORS.slate }}>Fee per student</label>
-                <input className="input" type="number" value={feeAmount} onChange={(e) => updateFee(Number(e.target.value) || 0)} style={{ width: 110 }} />
-              </div>
+            <div style={{ marginBottom: 20 }}>
+              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600, margin: 0 }}>
+                Payments — {new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+              </h1>
+              <p style={{ color: COLORS.slate, fontSize: 13.5, margin: "4px 0 0" }}>
+                Mathematics is {fmtMoney(MATH_FEE)}, every other subject is {fmtMoney(OTHER_SUBJECT_FEE)} — each student's fee is the sum of their subjects.
+              </p>
             </div>
 
             <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
@@ -501,12 +493,18 @@ function TuitionAdmin() {
 
             <Card style={{ padding: 4, overflowX: "auto" }}>
               <table>
-                <thead><tr><th>Student</th><th>Form</th><th>Status</th><th>Method</th><th></th></tr></thead>
+                <thead><tr><th>Student</th><th>Form</th><th>Subjects</th><th>Fee</th><th>Status</th><th>Method</th><th></th></tr></thead>
                 <tbody>
                   {monthPayments.map((s) => (
                     <tr key={s.id}>
                       <td style={{ fontWeight: 600 }}>{s.name}</td>
                       <td style={{ color: COLORS.slate }}>{s.form}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {(s.subjects || []).map((subj) => <SubjectTag key={subj}>{subj}</SubjectTag>)}
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(s.fee)}</td>
                       <td>{s.payStatus === "paid" ? <Pill tone="good">Paid</Pill> : <Pill tone="bad">Unpaid</Pill>}</td>
                       <td>
                         {s.payStatus === "paid" ? (
