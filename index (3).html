@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Hidden's Tuition — Admin desk</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #F0EDE6; font-family: 'Inter', sans-serif; }
+    #root { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const SITE_PASSWORD = "Hidden1234";
+
+const COLORS = {
+  ink: "#1C2541", paper: "#FAF8F4", paperRaised: "#FFFFFF",
+  teal: "#0F8B8D", tealBg: "#E3F3F2", clay: "#C4622D", clayBg: "#FBEAE0",
+  slate: "#6B7280", border: "#E7E2D8",
+};
+
+const SUBJECTS_F14 = ["Mathematics","Physics","Chemistry","Biology","English"];
+
+// ── Form 5 & 6 full curriculum pricing ────────────────────────────────────
+const F56_CURRICULUM = [
+  { subject:"Pure Maths", form:"Form Five", topics:[
+    {name:"Sets",price:20000},{name:"Logic",price:20000},{name:"Coordinates Geometry - I",price:25000},
+    {name:"Function",price:20000},{name:"Algebra I & II",price:50000},{name:"Trigonometry",price:30000},
+    {name:"Linear Programming",price:20000},{name:"Differentiation & Its Application",price:35000},
+    {name:"Integration & Its Application",price:35000}]},
+  { subject:"Pure Maths", form:"Form Six", topics:[
+    {name:"Coordinate Geometry - II",price:30000},{name:"Vector",price:25000},{name:"Hyperbolic Function",price:25000},
+    {name:"Statistics",price:25000},{name:"Probability - I",price:40000},{name:"Probability - II",price:30000},
+    {name:"Complex Number",price:25000},{name:"Differential Equation",price:30000},{name:"Numerical Method",price:25000}]},
+  { subject:"BAM", form:"Form Five & Six", topics:[
+    {name:"Function",price:25000},{name:"Algebra",price:20000},{name:"Trigonometry",price:20000},
+    {name:"Differentiation & Its Application",price:30000},{name:"Integration & Its Application",price:30000},
+    {name:"Sets",price:20000},{name:"Logic",price:20000},{name:"Statistics",price:25000},
+    {name:"Coordinate Geometry",price:20000},{name:"Vectors",price:25000}]},
+  { subject:"Physics", form:"Form Five", topics:[
+    {name:"Measurement",price:20000},{name:"Scientific Investigation",price:30000},{name:"Circular Motion",price:20000},
+    {name:"Projectile Motion",price:20000},{name:"Newton's Law of Motion",price:25000},{name:"Gravitation Motion",price:25000},
+    {name:"Rotation of Rigid Bodies",price:30000},{name:"Fluid Mechanics",price:35000},{name:"Properties of Matter",price:20000},
+    {name:"Heat",price:40000},{name:"Wave I",price:20000},{name:"Wave II",price:25000},
+    {name:"Electrostatics",price:30000},{name:"Simple Harmonic Motion",price:20000}]},
+  { subject:"Physics", form:"Form Six", topics:[
+    {name:"Current Electricity",price:40000},{name:"Electromagnetism",price:40000},{name:"Electronics",price:40000},
+    {name:"Physics of the Atom",price:40000},{name:"Energy Sources",price:35000},{name:"Introduction of Medical Physics",price:40000}]},
+  { subject:"Chemistry", form:"Form Five", topics:[
+    {name:"General Chemistry I & II",price:40000},{name:"Inorganic Chemistry",price:30000},
+    {name:"State of Matter / Gases / Colligative Properties",price:40000},{name:"Chemical Equilibrium",price:25000},
+    {name:"Energetics",price:25000},{name:"Organic I",price:25000}]},
+  { subject:"Chemistry", form:"Form Six", topics:[
+    {name:"Ionic Equilibria",price:25000},{name:"Electrochemistry",price:25000},{name:"Chemical Kinetics",price:25000},
+    {name:"Organic Chemistry - II",price:30000}]},
+  { subject:"Biology", form:"Form Five", topics:[
+    {name:"Cytology",price:20000},{name:"Biochemistry",price:20000},{name:"Coordination",price:30000},
+    {name:"Nutrition",price:30000},{name:"Gaseous Exchange and Respiration",price:30000},{name:"Regulation",price:20000},
+    {name:"Principle of Classification",price:20000},{name:"Comparative Studies of Natural Groups of Organisms",price:25000}]},
+  { subject:"Biology", form:"Form Six", topics:[
+    {name:"Transportation in Living Things",price:25000},{name:"Growth and Development",price:25000},
+    {name:"Reproduction",price:30000},{name:"Genetics",price:30000},{name:"Evolution",price:20000},{name:"Ecology",price:20000}]},
+  { subject:"Practical Geography", form:"Form Five", topics:[
+    {name:"Land Surveying",price:30000},{name:"Geographical Research",price:30000},
+    {name:"Geographical Data Analysis and Interpretation",price:30000},{name:"Techniques of Photograph Interpretation",price:30000},
+    {name:"Maps and Map Interpretation",price:20000}]},
+  { subject:"Physical Geography", form:"Form Five", topics:[
+    {name:"Theories of Landforms Formation",price:20000},{name:"Earth System",price:15000},
+    {name:"Endogenic Processes of the Earth",price:25000},{name:"Exogenic Processes of the Earth",price:30000},
+    {name:"Rocks",price:20000},{name:"Hydrology",price:20000}]},
+  { subject:"Geography", form:"Form Six", topics:[
+    {name:"Water Masses",price:30000},{name:"Study of Soil",price:30000},{name:"Population and Development",price:25000},
+    {name:"Regional Focal Studies",price:20000},{name:"Agricultural Development, Livestock Keeping and Management",price:20000},
+    {name:"Sustainable Use of Fuel and Power",price:20000},{name:"Sustainable Mining",price:20000},
+    {name:"Sustainable Use of Forest",price:20000},{name:"Sustainable Fishing",price:20000},
+    {name:"Environmental Friendly Tourism",price:20000},{name:"Manufacturing Industry",price:30000},{name:"Climatology",price:30000}]},
+  { subject:"History", form:"Form Five", topics:[
+    {name:"Pan Africanism",price:20000},{name:"Industrial Revolution in 18th & 19th C",price:20000},
+    {name:"Industrial Revolution in 20th & 21st C",price:20000},{name:"Administrative System in the Ancient World",price:20000},
+    {name:"World Religions and Their Influence on Administrative System",price:25000},
+    {name:"Slavery and Feudalism in Ancient Administrative System",price:20000},
+    {name:"Political Revolution and Modern Administrative System in Europe",price:20000},
+    {name:"The Capitalist Crises and Alternative System",price:25000},
+    {name:"Administrative System in Post-Colonial Africans",price:20000}]},
+  { subject:"History", form:"Form Six", topics:[
+    {name:"Threats to World Peace from 17th–19th Centuries",price:25000},
+    {name:"Wars and Conflicts from Late 19th Century to 1940s",price:25000},{name:"Cold War Politics and the Arms Race",price:35000},
+    {name:"New Threats to World Peace and Security",price:25000},{name:"Civil and Ethnic Wars in the World",price:25000},
+    {name:"Development in Post-Colonial Africa",price:25000}]},
+  { subject:"English Language", form:"Form Five", topics:[
+    {name:"Standard Pronunciation",price:25000},{name:"Vocabulary Development",price:20000},
+    {name:"Grammar and Vocabulary",price:25000},{name:"Oral Messages",price:20000},
+    {name:"Complex Linguistic Meanings",price:25000},{name:"Managing Conversations",price:20000},
+    {name:"Creating a Variety of Complex and Written Texts",price:20000},{name:"Principle of Interpreting",price:20000},
+    {name:"Principles of Translation",price:20000},{name:"Editing and Proofreading",price:20000},
+    {name:"Appreciating the Aesthetics and Value of Literature",price:25000},
+    {name:"Analysing and Appreciating Literary Genre",price:30000}]},
+  { subject:"English Language", form:"Form Six", topics:[
+    {name:"Using Standard Pronunciation",price:30000},{name:"Developing Grammar and Vocabulary",price:20000},
+    {name:"Using Correct Grammar and Vocabulary",price:20000},{name:"Reading Texts Critically",price:20000},
+    {name:"Sociocultural Analysis of Functional Texts",price:20000},{name:"Principles of Interpreting",price:15000},
+    {name:"Principles of Translating",price:15000},{name:"Principles of Editing and Proofreading",price:15000},
+    {name:"Managing Complex Translation and Editing Projects",price:20000},
+    {name:"Evaluating the Context of Literary Texts",price:20000},{name:"Complex Literary Works",price:20000}]},
+  { subject:"Literature in English", form:"Form Six", topics:[
+    {name:"Literature in English",price:20000},{name:"Analyzing Liberation and Postcolonial Literature",price:25000},
+    {name:"Literature and Politics, Aesthetics and Socialities",price:25000},{name:"Element of Form",price:20000},
+    {name:"Building Rational Argument and Judgment",price:25000},{name:"Communicative Contexts",price:25000},
+    {name:"Opportunities Created by Literary Works",price:20000},{name:"Composing Original Literary Works",price:20000}]},
+  { subject:"Kiswahili", form:"Form Five", topics:[
+    {name:"Sarufi ya Kiswahili",price:30000},{name:"Kuwasiliana kwa Njia ya Mazungumzo na Maandishi",price:25000},
+    {name:"Asili na Chimbuko la Kiswahili",price:20000},{name:"Kukua na Kuenea kwa Kiswahili",price:20000},
+    {name:"Matumizi ya Lugha",price:20000},{name:"Uhariri",price:15000},{name:"Tafsiri",price:15000},
+    {name:"Ukalimani",price:25000},{name:"Kuthamini Kazi za Fasihi",price:30000},
+    {name:"Uhakiki wa Kazi za Fasihi",price:25000},{name:"Utungaji wa Kazi za Fasihi",price:25000}]},
+  { subject:"Fasihi ya Kiswahili", form:"Form Five", topics:[
+    {name:"Dhana ya Chimbuko la Fasihi",price:20000},{name:"Fasihi Simulizi na Fasihi Andishi",price:25000},
+    {name:"Uthamini Kazi za Fasihi",price:25000},{name:"Maadili Katika Fasihi",price:25000},
+    {name:"Utunzi Katika Kazi za Fasihi",price:30000},{name:"Kubuni Kazi Changamani za Fasihi",price:20000}]},
+  { subject:"Fasihi ya Kiswahili", form:"Form Six", topics:[
+    {name:"Fasihi ya Kiswahili na Fasihi kwa Kiswahili",price:20000},
+    {name:"Maendeleo ya Fasihi ya Kiswahili Kitaifa na Kimataifa",price:20000},
+    {name:"Uhakiki wa Kazi za Fasihi kwa Kutumia Nadharia",price:20000},
+    {name:"Kutathimini Maadili, Mitazano na Imani ya Fasihi katika Jamii",price:20000},
+    {name:"Ujumi Katika Kazi ya Fasihi",price:20000},{name:"Kubuni Kazi Changamani za Fasihi",price:20000}]},
+  { subject:"Accountancy I", form:"Form Five", topics:[
+    {name:"The Nature and Context of Accountancy",price:10000},
+    {name:"Recording Business Transactions in the Books of Accounts",price:15000},
+    {name:"Correction of Accounting Errors",price:25000},{name:"Reserves and Provisions/Allowances",price:15000},
+    {name:"Depreciation and Disposal of Non-Current Assets",price:25000},
+    {name:"Recognition of Revenue and Expenses (Adjustments)",price:15000},
+    {name:"Preparation of Financial Statements",price:15000},
+    {name:"Financial Statements Analysis and Interpretation",price:25000},
+    {name:"Investment Accounts",price:25000},{name:"Accounting for Branches",price:30000}]},
+  { subject:"Accountancy II", form:"Form Six", topics:[
+    {name:"Dissolution and Amalgamation of Partnership Firms",price:30000},
+    {name:"Company Accounts",price:35000},
+    {name:"Financial Statements Analysis and Interpretation",price:30000},
+    {name:"Cost Accounting",price:20000},{name:"Professionalism and Ethics in Accounting",price:20000},
+    {name:"Computerized Accounting System",price:15000},{name:"Auditing",price:15000}]},
+  { subject:"Economics 1", form:"Form Five", topics:[
+    {name:"Concept and Scope of Economics",price:25000},{name:"Economics System",price:20000},
+    {name:"Price Theory",price:20000},{name:"Elasticity of Demand and Supply",price:20000},
+    {name:"Theory of Production and Costs",price:30000},{name:"Concept of Market",price:15000}]},
+  { subject:"Economics 2", form:"Form Six", topics:[
+    {name:"National Income",price:30000},{name:"Employment and Unemployment",price:15000},
+    {name:"Theory of Money",price:20000},{name:"Inflation and Deflation",price:20000},
+    {name:"Public Finance",price:20000},{name:"International Trade",price:25000}]},
+  { subject:"Historia ya Tanzania na Maadili", form:"Form Five & Six", topics:[
+    {name:"Historia, Utambulisho na Maadili ya Taifa",price:15000},
+    {name:"Mchango wa Historia na Urithi Katika Maendeleo",price:15000},
+    {name:"Fursa za Uwekezaji Zitokanazo na Vivutio vya Kihistoria na Urithi",price:15000},
+    {name:"Jamii za Kitanzania Kabla ya Ukoloni",price:15000},
+    {name:"Uhusiano wa Jamii za Kitanzania na Jamii Nyingine",price:15000},
+    {name:"Mifumo ya Kihistoria na Maadili Kabla ya Ukoloni",price:15000},
+    {name:"Nguvu ya Ukoloni Katika Kujenga Mwelekeo Mpya wa Jamii",price:15000},
+    {name:"Mchango wa Ukoloni Katika Mfumo wa Maadili ya Kitanzania",price:15000}]},
+  { subject:"Academic Communication", form:"Form Five & Six", topics:[
+    {name:"Crafting Meaning",price:25000},{name:"Effective Writing",price:15000},
+    {name:"Participating in Oral Presentation",price:20000},
+    {name:"Utilising ICT in Academic Communication",price:25000},
+    {name:"Making Academic Presentation",price:25000},
+    {name:"Using Illustrations in Academic Communication",price:20000}]},
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const todayStr = () => new Date().toISOString().slice(0,10);
+const monthStr = (d=new Date()) => d.toISOString().slice(0,7);
+const fmtMoney = (n) => "TZS " + Math.round(n).toLocaleString("en-US");
+
+// ── Shared UI components ───────────────────────────────────────────────────
+function Pill({tone,children}){
+  const map={good:{bg:COLORS.tealBg,fg:"#075452"},bad:{bg:COLORS.clayBg,fg:"#7A3A18"},neutral:{bg:"#EFEDE5",fg:COLORS.slate}};
+  const c=map[tone]||map.neutral;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12.5,fontWeight:600,padding:"3px 10px",borderRadius:999,background:c.bg,color:c.fg,whiteSpace:"nowrap",lineHeight:1.4}}>{children}</span>;
+}
+function Card({children,style}){
+  return <div style={{background:COLORS.paperRaised,border:`1px solid ${COLORS.border}`,borderRadius:14,...style}}>{children}</div>;
+}
+function StatCard({label,value,sub,accent}){
+  return <Card style={{padding:"16px 18px",flex:1,minWidth:140}}>
+    <div style={{fontSize:12.5,color:COLORS.slate,fontWeight:600,letterSpacing:0.2}}>{label}</div>
+    <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:26,fontWeight:600,color:accent||COLORS.ink,marginTop:6,fontVariantNumeric:"tabular-nums"}}>{value}</div>
+    {sub&&<div style={{fontSize:12,color:COLORS.slate,marginTop:4}}>{sub}</div>}
+  </Card>;
+}
+function NavItem({active,onClick,children,icon}){
+  return <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:10,width:"100%",textAlign:"left",padding:"10px 14px",borderRadius:10,border:"none",background:active?"rgba(255,255,255,0.12)":"transparent",color:active?"#FFFFFF":"rgba(255,255,255,0.62)",fontSize:14.5,fontWeight:active?600:500,cursor:"pointer"}}>
+    <span style={{fontSize:16,width:18,textAlign:"center"}}>{icon}</span>{children}
+  </button>;
+}
+function IconButton({onClick,label,children,danger}){
+  return <button onClick={onClick} aria-label={label} style={{border:`1px solid ${COLORS.border}`,background:COLORS.paperRaised,color:danger?"#9A3412":COLORS.ink,borderRadius:8,width:32,height:32,display:"inline-flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14}}>{children}</button>;
+}
+
+// ── Password gate ──────────────────────────────────────────────────────────
+function PasswordGate({onUnlock}){
+  const [pw,setPw]=React.useState("");
+  const [err,setErr]=React.useState(false);
+  const submit=()=>{ if(pw===SITE_PASSWORD){onUnlock();}else{setErr(true);setPw("");} };
+  return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+    <div style={{background:COLORS.paperRaised,border:`1px solid ${COLORS.border}`,borderRadius:16,padding:"40px 36px",maxWidth:360,width:"100%",textAlign:"center"}}>
+      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:22,color:COLORS.ink,marginBottom:4}}>Hidden Education Center</div>
+      <div style={{fontSize:13,color:COLORS.slate,marginBottom:28}}>Admin access only</div>
+      <input className="input" type="password" placeholder="Enter password" value={pw}
+        onChange={e=>{setPw(e.target.value);setErr(false);}}
+        onKeyDown={e=>e.key==="Enter"&&submit()}
+        style={{marginBottom:12,textAlign:"center",fontSize:16}} />
+      {err&&<div style={{color:COLORS.clay,fontSize:13,marginBottom:8}}>Wrong password — try again</div>}
+      <button className="btn-primary" onClick={submit} style={{width:"100%",padding:"10px 0",fontSize:15}}>Enter</button>
+    </div>
+  </div>;
+}
+
+// ── Form 5/6 Billing View ──────────────────────────────────────────────────
+function F56Billing(){
+  const [students,setStudents]=React.useState([
+    {id:1,name:"Omar Salum",form:"Form Five",phone:"0712 111 222",joined:"2026-06-01"},
+    {id:2,name:"Zuhura Hamisi",form:"Form Six",phone:"0754 333 444",joined:"2026-06-01"},
+  ]);
+  const [bills,setBills]=React.useState([]);
+  const [selectedStudent,setSelectedStudent]=React.useState(null);
+  const [checkedTopics,setCheckedTopics]=React.useState({});
+  // Expand all subject groups by default
+  const defaultExpanded={};
+  F56_CURRICULUM.forEach(g=>{defaultExpanded[`${g.subject}_${g.form}`]=true;});
+  const [expanded,setExpanded]=React.useState(defaultExpanded);
+  const [showAdd,setShowAdd]=React.useState(false);
+  const [newS,setNewS]=React.useState({name:"",form:"Form Five",phone:""});
+  const [formFilter,setFormFilter]=React.useState("All");
+  const [billSaved,setBillSaved]=React.useState(false);
+
+  const total=Object.values(checkedTopics).filter(Boolean).reduce((s,t)=>s+t.price,0);
+
+  const selectStudent=(s)=>{
+    setSelectedStudent(s);
+    setCheckedTopics({});
+    setExpanded({});
+    setBillSaved(false);
+  };
+
+  const toggleTopic=(key,topic)=>{
+    setCheckedTopics(prev=>({...prev,[key]:prev[key]?null:topic}));
+  };
+
+  const toggleExpand=(key)=>{
+    setExpanded(prev=>({...prev,[key]:!prev[key]}));
+  };
+
+  const saveBill=()=>{
+    const items=Object.values(checkedTopics).filter(Boolean);
+    if(!items.length||!selectedStudent) return;
+    const bill={
+      id:Date.now(),studentId:selectedStudent.id,
+      studentName:selectedStudent.name,date:todayStr(),
+      items,total,paid:false
+    };
+    setBills(prev=>[bill,...prev]);
+    setCheckedTopics({});
+    setBillSaved(true);
+  };
+
+  const toggleBillPaid=(id)=>{
+    setBills(prev=>prev.map(b=>b.id===id?{...b,paid:!b.paid}:b));
+  };
+
+  const addStudent=()=>{
+    if(!newS.name.trim()) return;
+    setStudents(prev=>[...prev,{id:Date.now(),...newS,name:newS.name.trim(),phone:newS.phone.trim()||"—",joined:todayStr()}]);
+    setNewS({name:"",form:"Form Five",phone:""});
+    setShowAdd(false);
+  };
+
+  const filteredCurriculum = formFilter==="All"
+    ? F56_CURRICULUM
+    : F56_CURRICULUM.filter(g=>g.form.includes(formFilter));
+
+  const studentBills = selectedStudent ? bills.filter(b=>b.studentId===selectedStudent.id) : [];
+  const totalOwed = studentBills.filter(b=>!b.paid).reduce((s,b)=>s+b.total,0);
+  const totalPaid = studentBills.filter(b=>b.paid).reduce((s,b)=>s+b.total,0);
+
+  return <div>
+    <div style={{marginBottom:20}}>
+      <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Form 5 & 6 Billing</h1>
+      <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>Select a student, tick their topics, and save their bill.</p>
+    </div>
+
+    <div style={{display:"flex",gap:20,alignItems:"flex-start"}}>
+      {/* Left: student list */}
+      <div style={{width:240,flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <span style={{fontWeight:600,fontSize:14}}>Students</span>
+          <button className="btn-primary" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setShowAdd(!showAdd)}>+ Add</button>
+        </div>
+
+        {showAdd&&<Card style={{padding:14,marginBottom:10}}>
+          <input className="input" placeholder="Full name" value={newS.name} onChange={e=>setNewS({...newS,name:e.target.value})} style={{marginBottom:8}} />
+          <select className="input" value={newS.form} onChange={e=>setNewS({...newS,form:e.target.value})} style={{marginBottom:8}}>
+            <option>Form Five</option><option>Form Six</option>
+          </select>
+          <input className="input" placeholder="Phone (optional)" value={newS.phone} onChange={e=>setNewS({...newS,phone:e.target.value})} style={{marginBottom:10}} />
+          <div style={{display:"flex",gap:6}}>
+            <button className="btn-primary" style={{fontSize:13,padding:"6px 12px"}} onClick={addStudent}>Save</button>
+            <button className="btn-secondary" style={{fontSize:13,padding:"6px 12px"}} onClick={()=>setShowAdd(false)}>Cancel</button>
+          </div>
+        </Card>}
+
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {students.map(s=>{
+            const active=selectedStudent?.id===s.id;
+            return <div key={s.id} onClick={()=>selectStudent(s)} style={{padding:"10px 14px",borderRadius:10,border:`1px solid ${active?COLORS.teal:COLORS.border}`,background:active?COLORS.tealBg:COLORS.paperRaised,cursor:"pointer"}}>
+              <div style={{fontWeight:600,fontSize:13.5,color:active?COLORS.teal:COLORS.ink}}>{s.name}</div>
+              <div style={{fontSize:12,color:COLORS.slate,marginTop:2}}>{s.form} · {s.phone}</div>
+            </div>;
+          })}
+        </div>
+      </div>
+
+      {/* Right: topic selector or placeholder */}
+      <div style={{flex:1}}>
+        {!selectedStudent && <Card style={{padding:36,textAlign:"center"}}>
+          <div style={{fontSize:32,marginBottom:12}}>←</div>
+          <div style={{fontWeight:600,color:COLORS.ink,marginBottom:4}}>Select a student</div>
+          <div style={{color:COLORS.slate,fontSize:13.5}}>Choose a student from the list to start adding topics to their bill.</div>
+        </Card>}
+
+        {selectedStudent && <>
+          {/* Student summary */}
+          <div style={{display:"flex",gap:10,marginBottom:16}}>
+            <StatCard label="Outstanding" value={fmtMoney(totalOwed)} accent={COLORS.clay} sub={`${studentBills.filter(b=>!b.paid).length} unpaid bill(s)`} />
+            <StatCard label="Total Paid" value={fmtMoney(totalPaid)} accent={COLORS.teal} sub={`${studentBills.filter(b=>b.paid).length} paid bill(s)`} />
+          </div>
+
+          {/* Topic selector */}
+          <Card style={{padding:18,marginBottom:16,maxHeight:"600px",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingRight:10}}>
+              <div style={{fontWeight:600,fontSize:15}}>{selectedStudent.name} — Select Topics</div>
+              <div style={{display:"flex",gap:6}}>
+                {["All","Five","Six"].map(f=>(
+                  <button key={f} onClick={()=>setFormFilter(f)} style={{padding:"5px 12px",borderRadius:7,fontSize:12.5,fontWeight:600,cursor:"pointer",border:`1px solid ${formFilter===f?COLORS.teal:COLORS.border}`,background:formFilter===f?COLORS.tealBg:"white",color:formFilter===f?COLORS.teal:COLORS.ink}}>{f==="All"?"All Forms":`Form ${f}`}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:"flex",flexDirection:"column",gap:8,paddingRight:4}}>
+              {filteredCurriculum.map((group,gi)=>{
+                const key=`${group.subject}_${group.form}`;
+                const isOpen=expanded[key];
+                const groupChecked=group.topics.filter(t=>checkedTopics[`${key}_${t.name}`]).length;
+                return <div key={gi} style={{border:`1px solid ${COLORS.border}`,borderRadius:10,overflow:"hidden"}}>
+                  <div onClick={()=>toggleExpand(key)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",cursor:"pointer",background:groupChecked>0?COLORS.tealBg:"white"}}>
+                    <div>
+                      <span style={{fontWeight:600,fontSize:13.5,color:COLORS.ink}}>{group.subject}</span>
+                      <span style={{fontSize:12,color:COLORS.slate,marginLeft:8}}>{group.form}</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      {groupChecked>0&&<span style={{fontSize:12,fontWeight:600,color:COLORS.teal}}>{groupChecked} selected</span>}
+                      <span style={{fontSize:12,color:COLORS.slate}}>{isOpen?"▲":"▼"}</span>
+                    </div>
+                  </div>
+                  {isOpen&&<div style={{borderTop:`1px solid ${COLORS.border}`}}>
+                    {group.topics.map((t,ti)=>{
+                      const tk=`${key}_${t.name}`;
+                      const checked=!!checkedTopics[tk];
+                      return <label key={ti} style={{display:"flex",alignItems:"center",padding:"9px 14px",cursor:"pointer",background:checked?"#F0FAF9":"white",borderBottom:ti<group.topics.length-1?`1px solid ${COLORS.border}`:"none",gap:10}}>
+                        <input type="checkbox" checked={checked} onChange={()=>toggleTopic(tk,{...t,subject:group.subject,form:group.form})}
+                          style={{width:16,height:16,accentColor:COLORS.teal,cursor:"pointer"}} />
+                        <span style={{flex:1,fontSize:13.5,color:COLORS.ink}}>{t.name}</span>
+                        <span style={{fontSize:13,fontWeight:600,color:checked?COLORS.teal:COLORS.slate,whiteSpace:"nowrap"}}>{fmtMoney(t.price)}</span>
+                      </label>;
+                    })}
+                  </div>}
+                </div>;
+              })}
+            </div>
+
+            {/* Running total + save - below scrollable content */}
+            <div style={{marginTop:16,padding:"14px 18px",background:COLORS.ink,borderRadius:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,0.6)"}}>
+                  {Object.values(checkedTopics).filter(Boolean).length} topic(s) selected
+                </div>
+                <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700,color:"white",fontVariantNumeric:"tabular-nums"}}>
+                  {fmtMoney(total)}
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+                <button className="btn-primary" onClick={saveBill}
+                  disabled={total===0}
+                  style={{background:total>0?"#0F8B8D":"rgba(255,255,255,0.2)",color:"white",padding:"10px 20px",fontSize:14,opacity:total===0?0.5:1}}>
+                  Save Bill
+                </button>
+                {billSaved&&<span style={{fontSize:12,color:"#6EDDD4"}}>✓ Bill saved!</span>}
+              </div>
+            </div>
+          </Card>
+
+          {/* Saved bills for this student */}
+          {studentBills.length>0&&<Card style={{padding:4}}>
+            <div style={{padding:"12px 16px 8px",fontWeight:600,fontSize:14,borderBottom:`1px solid ${COLORS.border}`}}>
+              Bills for {selectedStudent.name}
+            </div>
+            <table>
+              <thead><tr>
+                <th>Date</th><th>Topics</th><th>Total</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>
+                {studentBills.map(b=>(
+                  <tr key={b.id}>
+                    <td style={{color:COLORS.slate,whiteSpace:"nowrap"}}>{b.date}</td>
+                    <td style={{color:COLORS.slate,fontSize:12.5}}>
+                      {b.items.map(i=>i.name).join(", ").slice(0,60)}{b.items.length>2?"…":""}
+                    </td>
+                    <td style={{fontWeight:600,whiteSpace:"nowrap"}}>{fmtMoney(b.total)}</td>
+                    <td>{b.paid?<Pill tone="good">Paid</Pill>:<Pill tone="bad">Unpaid</Pill>}</td>
+                    <td>
+                      <button className="mark-btn" onClick={()=>toggleBillPaid(b.id)}
+                        style={{background:b.paid?COLORS.teal:COLORS.clay,color:"white",borderColor:"transparent",fontSize:12}}>
+                        {b.paid?"Mark Unpaid":"Mark Paid"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>}
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ── Main App ───────────────────────────────────────────────────────────────
+function App(){
+  const [unlocked,setUnlocked]=React.useState(false);
+  const [view,setView]=React.useState("today");
+  const [students,setStudents]=React.useState([
+    {id:1,name:"Amina Juma",subjects:["Mathematics","Physics"],phone:"0712 345 678",joined:"2026-04-02"},
+    {id:2,name:"Baraka Mushi",subjects:["Physics","Chemistry"],phone:"0765 112 233",joined:"2026-04-02"},
+    {id:3,name:"Catherine Mwakalinga",subjects:["Mathematics","Biology"],phone:"0688 990 011",joined:"2026-04-09"},
+    {id:4,name:"Daudi Kessy",subjects:["Chemistry","English"],phone:"0754 220 198",joined:"2026-04-09"},
+    {id:5,name:"Esther Mbwana",subjects:["English"],phone:"0713 887 654",joined:"2026-04-16"},
+    {id:6,name:"Frank Malisa",subjects:["Biology","Mathematics"],phone:"0789 001 122",joined:"2026-04-16"},
+  ]);
+  const [attendance,setAttendance]=React.useState({});
+  const [payments,setPayments]=React.useState({});
+  const [topics,setTopics]=React.useState([
+    {id:1,subject:"Mathematics",teacher:"Mr. Joseph",date:"2026-06-18",topic:"Quadratic equations — factoring method"},
+    {id:2,subject:"Physics",teacher:"Mr. Elias",date:"2026-06-19",topic:"Newton's laws of motion, worked problems"},
+    {id:3,subject:"Chemistry",teacher:"Ms. Grace",date:"2026-06-20",topic:"Balancing chemical equations"},
+  ]);
+  const [showAddStudent,setShowAddStudent]=React.useState(false);
+  const [showAddTopic,setShowAddTopic]=React.useState(false);
+  const [newStudent,setNewStudent]=React.useState({name:"",subjects:[],phone:""});
+  const [newTopic,setNewTopic]=React.useState({subject:SUBJECTS_F14[0],teacher:"",date:todayStr(),topic:""});
+  const [search,setSearch]=React.useState("");
+
+  const today=todayStr(), thisMonth=monthStr();
+  const attKey=(d,sid)=>`${d}_${sid}`;
+  const payKey=(m,sid)=>`${m}_${sid}`;
+
+  const toggleAttendance=(d,sid,status)=>setAttendance(prev=>({...prev,[attKey(d,sid)]:status}));
+  const setPaymentAmount=(m,sid,paid,outstanding)=>setPayments(prev=>({...prev,[payKey(m,sid)]:{...(prev[payKey(m,sid)]||{}),paid:paid||0,outstanding:outstanding||0}}));
+
+  const todayAttendance=React.useMemo(()=>{
+    const expanded=[];
+    students.forEach(s=>{
+      s.subjects.forEach(subj=>{
+        const key=`${today}_${s.id}_${subj}`;
+        expanded.push({...s,subject:subj,status:attendance[key]||null,attKey:key});
+      });
+    });
+    return expanded;
+  },[students,attendance,today]);
+  const presentCount=todayAttendance.filter(s=>s.status==="present").length;
+  const absentCount=todayAttendance.filter(s=>s.status==="absent").length;
+  const unmarkedCount=students.length-presentCount-absentCount;
+
+  const monthPayments=React.useMemo(()=>students.map(s=>{
+    const payData=payments[payKey(thisMonth,s.id)]||{paid:0,outstanding:0};
+    return {...s,paid:payData.paid||0,outstanding:payData.outstanding||0};
+  }),[students,payments,thisMonth]);
+  const collected=monthPayments.reduce((sum,s)=>sum+s.paid,0);
+  const outstanding=monthPayments.reduce((sum,s)=>sum+s.outstanding,0);
+  const hasOutstanding=outstanding>0;
+  const filteredStudents=students.filter(s=>s.name.toLowerCase().includes(search.toLowerCase()));
+
+  const addStudent=()=>{
+    if(!newStudent.name.trim()||newStudent.subjects.length===0) return;
+    setStudents(prev=>[...prev,{id:Date.now(),name:newStudent.name.trim(),subjects:newStudent.subjects,phone:newStudent.phone.trim()||"—",joined:todayStr()}]);
+    setNewStudent({name:"",subjects:[],phone:""});
+    setShowAddStudent(false);
+  };
+  const removeStudent=(id)=>setStudents(prev=>prev.filter(s=>s.id!==id));
+  const addTopic=()=>{
+    if(!newTopic.topic.trim()||!newTopic.teacher.trim()) return;
+    setTopics(prev=>[{id:Date.now(),...newTopic},...prev]);
+    setNewTopic({subject:SUBJECTS_F14[0],teacher:"",date:todayStr(),topic:""});
+    setShowAddTopic(false);
+  };
+
+  if(!unlocked) return <PasswordGate onUnlock={()=>setUnlocked(true)} />;
+
+  return <div style={{display:"flex",minHeight:640,width:"100%",maxWidth:1200,background:COLORS.paper,borderRadius:16,overflow:"hidden",border:`1px solid ${COLORS.border}`,color:COLORS.ink,fontSize:14}}>
+    <style>{`
+      *{box-sizing:border-box;font-family:'Inter',sans-serif;}
+      input,select,textarea{font-family:'Inter',sans-serif;}
+      input:focus,select:focus,button:focus-visible{outline:2px solid ${COLORS.teal};outline-offset:1px;}
+      table{border-collapse:collapse;width:100%;}
+      th,td{text-align:left;padding:10px 14px;font-size:14px;}
+      thead th{font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:${COLORS.slate};font-weight:600;border-bottom:1px solid ${COLORS.border};padding-bottom:10px;}
+      tbody tr{border-bottom:1px solid ${COLORS.border};}
+      tbody tr:last-child{border-bottom:none;}
+      .btn-primary{background:${COLORS.ink};color:white;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;}
+      .btn-primary:disabled{background:${COLORS.slate};cursor:not-allowed;opacity:0.5;}
+      .btn-secondary{background:white;color:${COLORS.ink};border:1px solid ${COLORS.border};border-radius:8px;padding:8px 15px;font-size:14px;font-weight:600;cursor:pointer;}
+      .input{border:1px solid ${COLORS.border};border-radius:8px;padding:8px 12px;font-size:14px;width:100%;background:white;color:${COLORS.ink};}
+      .mark-btn{border-radius:7px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;}
+    `}</style>
+
+    {/* Sidebar */}
+    <div style={{width:225,background:COLORS.ink,padding:"22px 14px",display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+      <div style={{padding:"0 10px 22px"}}>
+        <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:17,color:"white",lineHeight:1.2}}>Hidden Education</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",marginTop:2}}>Admin desk</div>
+      </div>
+      <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",letterSpacing:"0.08em",fontWeight:600,padding:"0 14px 4px",textTransform:"uppercase"}}>Form 1–4</div>
+      <NavItem active={view==="today"} onClick={()=>setView("today")} icon="◷">Today</NavItem>
+      <NavItem active={view==="students"} onClick={()=>setView("students")} icon="◍">Students</NavItem>
+      <NavItem active={view==="payments"} onClick={()=>setView("payments")} icon="◆">Payments</NavItem>
+      <NavItem active={view==="topics"} onClick={()=>setView("topics")} icon="▤">Topics covered</NavItem>
+      <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",margin:"10px 0"}} />
+      <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",letterSpacing:"0.08em",fontWeight:600,padding:"0 14px 4px",textTransform:"uppercase"}}>Form 5–6</div>
+      <NavItem active={view==="f56"} onClick={()=>setView("f56")} icon="📋">Billing</NavItem>
+      <div style={{marginTop:"auto",padding:"14px 10px 0"}}>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.12)",paddingTop:14}}>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.45)"}}>{new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</div>
+        </div>
+      </div>
+    </div>
+
+    {/* Main content */}
+    <div style={{flex:1,padding:"28px 32px",overflow:"auto"}}>
+
+      {/* TODAY */}
+      {view==="today"&&<div>
+        <div style={{marginBottom:20}}>
+          <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Today's attendance</h1>
+          <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>Mark who showed up. It saves as you go.</p>
+        </div>
+        <div style={{display:"flex",gap:12,marginBottom:24}}>
+          <StatCard label="Present" value={presentCount} accent={COLORS.teal} />
+          <StatCard label="Absent" value={absentCount} accent={COLORS.clay} />
+          <StatCard label="Not marked" value={unmarkedCount} />
+        </div>
+        <Card style={{padding:4}}>
+          <table><thead><tr><th>Student</th><th>Subject</th><th>Status</th><th></th></tr></thead>
+          <tbody>{todayAttendance.map(s=>(
+            <tr key={s.attKey}>
+              <td style={{fontWeight:600}}>{s.name}</td>
+              <td style={{color:COLORS.slate}}>{s.subject}</td>
+              <td>{s.status==="present"&&<Pill tone="good">Present</Pill>}{s.status==="absent"&&<Pill tone="bad">Absent</Pill>}{!s.status&&<Pill tone="neutral">Not marked</Pill>}</td>
+              <td><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <button className="mark-btn" onClick={()=>setAttendance(prev=>({...prev,[s.attKey]:"present"}))} style={{background:s.status==="present"?COLORS.teal:"white",color:s.status==="present"?"white":COLORS.ink,borderColor:s.status==="present"?COLORS.teal:COLORS.border}}>Present</button>
+                <button className="mark-btn" onClick={()=>setAttendance(prev=>({...prev,[s.attKey]:"absent"}))} style={{background:s.status==="absent"?COLORS.clay:"white",color:s.status==="absent"?"white":COLORS.ink,borderColor:s.status==="absent"?COLORS.clay:COLORS.border}}>Absent</button>
+              </div></td>
+            </tr>
+          ))}</tbody></table>
+        </Card>
+      </div>}
+
+      {/* STUDENTS */}
+      {view==="students"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div>
+            <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Students</h1>
+            <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>{students.length} enrolled · Form 1–4</p>
+          </div>
+          <button className="btn-primary" onClick={()=>setShowAddStudent(true)}>+ Add student</button>
+        </div>
+        <input className="input" placeholder="Search by name…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:16,maxWidth:280}} />
+        {showAddStudent&&<Card style={{padding:18,marginBottom:16}}>
+          <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+            <input className="input" placeholder="Full name" value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})} style={{flex:2,minWidth:160}} />
+            <input className="input" placeholder="Phone number" value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})} style={{flex:1,minWidth:140}} />
+          </div>
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:COLORS.ink}}>Subjects</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+              {SUBJECTS_F14.map(subj=>(
+                <label key={subj} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                  <input type="checkbox" checked={newStudent.subjects.includes(subj)} 
+                    onChange={e=>{
+                      if(e.target.checked){
+                        setNewStudent({...newStudent,subjects:[...newStudent.subjects,subj]});
+                      }else{
+                        setNewStudent({...newStudent,subjects:newStudent.subjects.filter(s=>s!==subj)});
+                      }
+                    }}
+                    style={{width:16,height:16,accentColor:COLORS.teal,cursor:"pointer"}} />
+                  <span style={{fontSize:14}}>{subj}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn-primary" onClick={addStudent} disabled={!newStudent.name.trim()||newStudent.subjects.length===0}>Save student</button>
+            <button className="btn-secondary" onClick={()=>setShowAddStudent(false)}>Cancel</button>
+          </div>
+        </Card>}
+        <Card style={{padding:4}}>
+          <table><thead><tr><th>Name</th><th>Subjects</th><th>Phone</th><th>Joined</th><th></th></tr></thead>
+          <tbody>{filteredStudents.map(s=>(
+            <tr key={s.id}>
+              <td style={{fontWeight:600}}>{s.name}</td>
+              <td style={{color:COLORS.slate,fontSize:13.5}}>{s.subjects.join(", ")}</td>
+              <td style={{color:COLORS.slate}}>{s.phone}</td>
+              <td style={{color:COLORS.slate}}>{s.joined}</td>
+              <td><div style={{display:"flex",justifyContent:"flex-end"}}><IconButton label={`Remove ${s.name}`} danger onClick={()=>removeStudent(s.id)}>✕</IconButton></div></td>
+            </tr>
+          ))}</tbody></table>
+        </Card>
+      </div>}
+
+      {/* PAYMENTS */}
+      {view==="payments"&&<div>
+        <div style={{marginBottom:20}}>
+          <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Payments — {new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h1>
+          <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>Enter the amount paid and amount outstanding for each student. Updated automatically.</p>
+        </div>
+        <div style={{display:"flex",gap:12,marginBottom:24}}>
+          <StatCard label="Collected" value={fmtMoney(collected)} accent={COLORS.teal} />
+          <StatCard label="Outstanding" value={fmtMoney(outstanding)} accent={COLORS.clay} />
+        </div>
+        <Card style={{padding:4}}>
+          <table><thead><tr><th>Student</th><th>Subjects</th><th>Amount Paid</th><th>Amount Outstanding</th><th>Total</th></tr></thead>
+          <tbody>{monthPayments.map(s=>{
+            const total=s.paid+s.outstanding;
+            return <tr key={s.id}>
+              <td style={{fontWeight:600}}>{s.name}</td>
+              <td style={{color:COLORS.slate,fontSize:13.5}}>{s.subjects.join(", ")}</td>
+              <td>
+                <input type="number" value={s.paid} onChange={e=>setPaymentAmount(thisMonth,s.id,parseInt(e.target.value)||0,s.outstanding)} 
+                  style={{width:100,padding:"6px 8px",border:`1px solid ${COLORS.border}`,borderRadius:6,fontSize:13}} />
+              </td>
+              <td>
+                <input type="number" value={s.outstanding} onChange={e=>setPaymentAmount(thisMonth,s.id,s.paid,parseInt(e.target.value)||0)} 
+                  style={{width:100,padding:"6px 8px",border:`1px solid ${COLORS.border}`,borderRadius:6,fontSize:13}} />
+              </td>
+              <td style={{fontWeight:600,color:total>0?COLORS.ink:COLORS.slate}}>{fmtMoney(total)}</td>
+            </tr>;
+          })}</tbody></table>
+        </Card>
+      </div>}
+
+      {/* TOPICS */}
+      {view==="topics"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div>
+            <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Topics covered</h1>
+            <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>A running log per subject.</p>
+          </div>
+          <button className="btn-primary" onClick={()=>setShowAddTopic(true)}>+ Log a topic</button>
+        </div>
+        {showAddTopic&&<Card style={{padding:18,marginBottom:16}}>
+          <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+            <select className="input" value={newTopic.subject} onChange={e=>setNewTopic({...newTopic,subject:e.target.value})} style={{flex:1,minWidth:130}}>
+              {SUBJECTS_F14.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+            <input className="input" placeholder="Teacher's name" value={newTopic.teacher} onChange={e=>setNewTopic({...newTopic,teacher:e.target.value})} style={{flex:1,minWidth:150}} />
+            <input className="input" type="date" value={newTopic.date} onChange={e=>setNewTopic({...newTopic,date:e.target.value})} style={{flex:1,minWidth:130}} />
+          </div>
+          <textarea className="input" placeholder="What was covered in class…" value={newTopic.topic} onChange={e=>setNewTopic({...newTopic,topic:e.target.value})} style={{width:"100%",minHeight:60,marginBottom:10,resize:"vertical"}} />
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn-primary" onClick={addTopic}>Save entry</button>
+            <button className="btn-secondary" onClick={()=>setShowAddTopic(false)}>Cancel</button>
+          </div>
+        </Card>}
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {topics.map(t=>(
+            <Card key={t.id} style={{padding:"14px 18px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontWeight:600}}>{t.subject}</span>
+                  <span style={{color:COLORS.slate,fontSize:13}}>· {t.teacher}</span>
+                </div>
+                <span style={{color:COLORS.slate,fontSize:12.5}}>{t.date}</span>
+              </div>
+              <div style={{fontSize:14,color:COLORS.ink}}>{t.topic}</div>
+            </Card>
+          ))}
+          {topics.length===0&&<p style={{color:COLORS.slate,fontSize:14}}>Nothing logged yet.</p>}
+        </div>
+      </div>}
+
+      {/* FORM 5/6 BILLING */}
+      {view==="f56"&&<F56Billing />}
+
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
