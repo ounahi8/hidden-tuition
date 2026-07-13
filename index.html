@@ -27,7 +27,14 @@ const COLORS = {
   slate: "#6B7280", border: "#E7E2D8",
 };
 
-const SUBJECTS_F14 = ["Mathematics","Physics","Chemistry","Biology","English"];
+const SUBJECTS_F14 = [
+  "Mathematics", "English Language", "Kiswahili", "Civics", "History",
+  "Geography", "Biology", "Physics", "Chemistry", "Commerce", "Book Keeping",
+  "Agriculture", "Computer Studies", "Literature in English", "French",
+  "Arabic Language", "Fine Art", "Music", "Food and Nutrition",
+  "Textile and Dress Making", "Bible Knowledge", "Islamic Religious Education",
+  "Physical Education",
+];
 
 // ── Form 5 & 6 full curriculum pricing ────────────────────────────────────
 const F56_CURRICULUM = [
@@ -221,12 +228,7 @@ function PasswordGate({onUnlock}){
 }
 
 // ── Form 5/6 Billing View ──────────────────────────────────────────────────
-function F56Billing(){
-  const [students,setStudents]=React.useState([
-    {id:1,name:"Omar Salum",form:"Form Five",phone:"0712 111 222",joined:"2026-06-01"},
-    {id:2,name:"Zuhura Hamisi",form:"Form Six",phone:"0754 333 444",joined:"2026-06-01"},
-  ]);
-  const [bills,setBills]=React.useState([]);
+function F56Billing({students,setStudents,bills,setBills}){
   const [selectedStudent,setSelectedStudent]=React.useState(null);
   const [checkedTopics,setCheckedTopics]=React.useState({});
   // Expand all subject groups by default
@@ -462,6 +464,11 @@ function App(){
   const [newStudent,setNewStudent]=React.useState({name:"",subjects:[],phone:""});
   const [newTopic,setNewTopic]=React.useState({subject:SUBJECTS_F14[0],teacher:"",date:todayStr(),topic:""});
   const [search,setSearch]=React.useState("");
+  const [studentsF56,setStudentsF56]=React.useState([
+    {id:1,name:"Omar Salum",form:"Form Five",phone:"0712 111 222",joined:"2026-06-01"},
+    {id:2,name:"Zuhura Hamisi",form:"Form Six",phone:"0754 333 444",joined:"2026-06-01"},
+  ]);
+  const [billsF56,setBillsF56]=React.useState([]);
 
   const today=todayStr(), thisMonth=monthStr();
   const attKey=(d,sid)=>`${d}_${sid}`;
@@ -491,6 +498,20 @@ function App(){
   const collected=monthPayments.reduce((sum,s)=>sum+s.paid,0);
   const outstanding=monthPayments.reduce((sum,s)=>sum+s.outstanding,0);
   const hasOutstanding=outstanding>0;
+
+  // Combined outstanding list: Form 1-4 students with a manually-entered balance,
+  // plus Form 5-6 students with unpaid bills.
+  const outstandingF14=monthPayments
+    .filter(s=>s.outstanding>0)
+    .map(s=>({id:`f14_${s.id}`,name:s.name,formLabel:"Form 1–4",phone:s.phone,balance:s.outstanding}));
+  const outstandingF56=studentsF56
+    .map(s=>{
+      const owed=billsF56.filter(b=>b.studentId===s.id&&!b.paid).reduce((sum,b)=>sum+b.total,0);
+      return {id:`f56_${s.id}`,name:s.name,formLabel:s.form,phone:s.phone,balance:owed};
+    })
+    .filter(s=>s.balance>0);
+  const outstandingAll=[...outstandingF14,...outstandingF56].sort((a,b)=>b.balance-a.balance);
+  const totalOutstandingAll=outstandingAll.reduce((sum,s)=>sum+s.balance,0);
   const filteredStudents=students.filter(s=>s.name.toLowerCase().includes(search.toLowerCase()));
 
   const addStudent=()=>{
@@ -540,6 +561,8 @@ function App(){
       <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",margin:"10px 0"}} />
       <div style={{fontSize:10.5,color:"rgba(255,255,255,0.35)",letterSpacing:"0.08em",fontWeight:600,padding:"0 14px 4px",textTransform:"uppercase"}}>Form 5–6</div>
       <NavItem active={view==="f56"} onClick={()=>setView("f56")} icon="📋">Billing</NavItem>
+      <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",margin:"10px 0"}} />
+      <NavItem active={view==="outstanding"} onClick={()=>setView("outstanding")} icon="⚠">Outstanding</NavItem>
       <div style={{marginTop:"auto",padding:"14px 10px 0"}}>
         <div style={{borderTop:"1px solid rgba(255,255,255,0.12)",paddingTop:14}}>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.45)"}}>{new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</div>
@@ -702,7 +725,31 @@ function App(){
       </div>}
 
       {/* FORM 5/6 BILLING */}
-      {view==="f56"&&<F56Billing />}
+      {view==="f56"&&<F56Billing students={studentsF56} setStudents={setStudentsF56} bills={billsF56} setBills={setBillsF56} />}
+
+      {/* OUTSTANDING — combined across Form 1-4 and Form 5-6 */}
+      {view==="outstanding"&&<div>
+        <div style={{marginBottom:20}}>
+          <h1 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:600,margin:0}}>Outstanding balances</h1>
+          <p style={{color:COLORS.slate,fontSize:13.5,margin:"4px 0 0"}}>Everyone who still owes money, across all forms — sorted highest first.</p>
+        </div>
+        <div style={{display:"flex",gap:12,marginBottom:24}}>
+          <StatCard label="Total outstanding" value={fmtMoney(totalOutstandingAll)} accent={COLORS.clay} sub={`${outstandingAll.length} students`} />
+        </div>
+        <Card style={{padding:4}}>
+          <table><thead><tr><th>Student</th><th>Form</th><th>Phone</th><th>Outstanding</th></tr></thead>
+          <tbody>{outstandingAll.map(s=>(
+            <tr key={s.id}>
+              <td style={{fontWeight:600}}>{s.name}</td>
+              <td style={{color:COLORS.slate}}>{s.formLabel}</td>
+              <td style={{color:COLORS.slate}}>{s.phone}</td>
+              <td style={{fontWeight:600,color:"#9A3412"}}>{fmtMoney(s.balance)}</td>
+            </tr>
+          ))}
+          {outstandingAll.length===0&&<tr><td colSpan="4" style={{color:COLORS.slate,textAlign:"center",padding:"20px"}}>Nobody has an outstanding balance right now. 🎉</td></tr>}
+          </tbody></table>
+        </Card>
+      </div>}
 
     </div>
   </div>;
