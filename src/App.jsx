@@ -8,8 +8,25 @@ const COLORS = {
   slate: "#6B7280", border: "#E7E2D8",
 };
 
-const SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "Geography", "Kiswahili", "English", "Civics", "History"];
+// Full O-Level (Form 1-4) NECTA curriculum subject list — compulsory + elective.
+const F1_F4_SUBJECTS = [
+  "Mathematics", "English Language", "Kiswahili", "Civics", "History",
+  "Geography", "Biology", "Physics", "Chemistry", "Commerce", "Book Keeping",
+  "Agriculture", "Computer Studies", "Literature in English", "French",
+  "Arabic Language", "Fine Art", "Music", "Food and Nutrition",
+  "Textile and Dress Making", "Bible Knowledge", "Islamic Religious Education",
+  "Physical Education",
+];
+
+// A-Level (Form 5-6) subject list — kept as the original core science/arts combos.
+const F5_F6_SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "Geography", "Kiswahili", "English", "Civics", "History"];
+
+// Union list — used anywhere a form-agnostic subject dropdown is still needed (e.g. Topics tab).
+const SUBJECTS = Array.from(new Set([...F1_F4_SUBJECTS, ...F5_F6_SUBJECTS]));
+
 const FORMS = ["Form 1", "Form 2", "Form 3", "Form 4", "Form 5", "Form 6"];
+const isLowerForm = (form) => ["Form 1", "Form 2", "Form 3", "Form 4"].includes(form);
+const subjectsForForm = (form) => (isLowerForm(form) ? F1_F4_SUBJECTS : F5_F6_SUBJECTS);
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "hiddens2026";
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -101,14 +118,15 @@ function NavItem({ active, onClick, children, icon }) {
   );
 }
 
-function SubjectCheckboxes({ selected, onChange }) {
+function SubjectCheckboxes({ selected, onChange, subjects }) {
+  const list = subjects || SUBJECTS;
   const toggle = (subj) => {
     if (selected.includes(subj)) onChange(selected.filter((s) => s !== subj));
     else onChange([...selected, subj]);
   };
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {SUBJECTS.map((subj) => {
+      {list.map((subj) => {
         const active = selected.includes(subj);
         return (
           <button
@@ -200,7 +218,7 @@ function TuitionAdmin() {
 
       const payMap = {};
       (paymentsRes.data || []).forEach((row) => {
-        payMap[row.student_id] = { status: row.status, method: row.method };
+        payMap[row.student_id] = { status: row.status, method: row.method, amountPaid: row.amount_paid || 0 };
       });
       setPayments(payMap);
 
@@ -237,23 +255,25 @@ function TuitionAdmin() {
     else flashSaved();
   };
 
-  const togglePayment = async (sid, status) => {
-    setPayments((prev) => ({ ...prev, [sid]: { ...(prev[sid] || {}), status } }));
-    const { error } = await supabase.from("payments").upsert(
-      { student_id: sid, month: thisMonth, status, method: payments[sid]?.method || null },
-      { onConflict: "student_id,month" }
-    );
-    if (error) { setErrorMsg("Couldn't save payment status — check your connection."); console.error(error); }
-    else flashSaved();
-  };
-
   const setPaymentMethod = async (sid, method) => {
     setPayments((prev) => ({ ...prev, [sid]: { ...(prev[sid] || {}), method } }));
     const { error } = await supabase.from("payments").upsert(
-      { student_id: sid, month: thisMonth, method, status: payments[sid]?.status || "paid" },
+      { student_id: sid, month: thisMonth, method, status: payments[sid]?.status || "paid", amount_paid: payments[sid]?.amountPaid || 0 },
       { onConflict: "student_id,month" }
     );
     if (error) { setErrorMsg("Couldn't save payment method."); console.error(error); }
+    else flashSaved();
+  };
+
+  const setAmountPaid = async (sid, fee, amount) => {
+    const amountPaid = Math.max(0, Number(amount) || 0);
+    const status = amountPaid >= fee && fee > 0 ? "paid" : amountPaid > 0 ? "partial" : "unpaid";
+    setPayments((prev) => ({ ...prev, [sid]: { ...(prev[sid] || {}), amountPaid, status } }));
+    const { error } = await supabase.from("payments").upsert(
+      { student_id: sid, month: thisMonth, amount_paid: amountPaid, status, method: payments[sid]?.method || null },
+      { onConflict: "student_id,month" }
+    );
+    if (error) { setErrorMsg("Couldn't save amount paid — check your connection."); console.error(error); }
     else flashSaved();
   };
 
@@ -268,18 +288,29 @@ function TuitionAdmin() {
   const absentCount = students.length - presentCount;
 
   const monthPayments = useMemo(() => {
-    return students.map((s) => ({
-      ...s,
-      fee: calcFee(s),
-      payStatus: payments[s.id]?.status || "unpaid",
-      method: payments[s.id]?.method || "—",
-    }));
+    return students.map((s) => {
+      const fee = calcFee(s);
+      const amountPaid = payments[s.id]?.amountPaid || 0;
+      const balance = Math.max(0, fee - amountPaid);
+      return {
+        ...s,
+        fee,
+        amountPaid,
+        balance,
+        payStatus: payments[s.id]?.status || "unpaid",
+        method: payments[s.id]?.method || "—",
+      };
+    });
   }, [students, payments]);
 
   const paidCount = monthPayments.filter((s) => s.payStatus === "paid").length;
   const unpaidStudents = monthPayments.filter((s) => s.payStatus !== "paid");
-  const collected = monthPayments.filter((s) => s.payStatus === "paid").reduce((sum, s) => sum + s.fee, 0);
-  const outstanding = unpaidStudents.reduce((sum, s) => sum + s.fee, 0);
+  const collected = monthPayments.reduce((sum, s) => sum + s.amountPaid, 0);
+  const outstanding = monthPayments.reduce((sum, s) => sum + s.balance, 0);
+  const outstandingStudents = useMemo(
+    () => monthPayments.filter((s) => s.balance > 0).sort((a, b) => b.balance - a.balance),
+    [monthPayments]
+  );
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
@@ -348,6 +379,7 @@ function TuitionAdmin() {
         <NavItem active={view === "today"} onClick={() => setView("today")} icon="◷">Attendance</NavItem>
         <NavItem active={view === "students"} onClick={() => setView("students")} icon="◍">Students</NavItem>
         <NavItem active={view === "payments"} onClick={() => setView("payments")} icon="◆">Payments</NavItem>
+        <NavItem active={view === "outstanding"} onClick={() => setView("outstanding")} icon="⚠">Outstanding</NavItem>
         <NavItem active={view === "topics"} onClick={() => setView("topics")} icon="▤">Topics covered</NavItem>
 
         <div className="sidebar-footer" style={{ marginTop: "auto", padding: "14px 10px 0" }}>
@@ -429,14 +461,20 @@ function TuitionAdmin() {
               <Card style={{ padding: 18, marginBottom: 16 }}>
                 <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
                   <input className="input" placeholder="Full name" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} style={{ flex: 2, minWidth: 160 }} />
-                  <select className="input" value={newStudent.form} onChange={(e) => setNewStudent({ ...newStudent, form: e.target.value })} style={{ flex: 1, minWidth: 120 }}>
+                  <select className="input" value={newStudent.form} onChange={(e) => setNewStudent({ ...newStudent, form: e.target.value, subjects: [] })} style={{ flex: 1, minWidth: 120 }}>
                     {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
                   <input className="input" placeholder="Phone number" value={newStudent.phone} onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })} style={{ flex: 1, minWidth: 140 }} />
                 </div>
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12.5, color: COLORS.slate, fontWeight: 600, marginBottom: 6 }}>Subjects</div>
-                  <SubjectCheckboxes selected={newStudent.subjects} onChange={(subs) => setNewStudent({ ...newStudent, subjects: subs })} />
+                  <div style={{ fontSize: 12.5, color: COLORS.slate, fontWeight: 600, marginBottom: 6 }}>
+                    Subjects {isLowerForm(newStudent.form) ? "(NECTA O-Level curriculum)" : "(A-Level combination)"}
+                  </div>
+                  <SubjectCheckboxes
+                    selected={newStudent.subjects}
+                    onChange={(subs) => setNewStudent({ ...newStudent, subjects: subs })}
+                    subjects={subjectsForForm(newStudent.form)}
+                  />
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button className="btn-primary" onClick={addStudent}>Save student</button>
@@ -482,18 +520,18 @@ function TuitionAdmin() {
                 Payments — {new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
               </h1>
               <p style={{ color: COLORS.slate, fontSize: 13.5, margin: "4px 0 0" }}>
-                Mathematics is {fmtMoney(MATH_FEE)}, every other subject is {fmtMoney(OTHER_SUBJECT_FEE)} — each student's fee is the sum of their subjects.
+                Mathematics is {fmtMoney(MATH_FEE)}, every other subject is {fmtMoney(OTHER_SUBJECT_FEE)} — each student's fee is the sum of their subjects. Enter what a student has paid; outstanding balance updates automatically.
               </p>
             </div>
 
             <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-              <StatCard label="Collected" value={fmtMoney(collected)} accent={COLORS.teal} sub={`${paidCount} of ${students.length} paid`} />
-              <StatCard label="Outstanding" value={fmtMoney(outstanding)} accent={COLORS.clay} sub={`${unpaidStudents.length} unpaid`} />
+              <StatCard label="Collected" value={fmtMoney(collected)} accent={COLORS.teal} sub={`${paidCount} of ${students.length} fully paid`} />
+              <StatCard label="Outstanding" value={fmtMoney(outstanding)} accent={COLORS.clay} sub={`${outstandingStudents.length} with a balance`} />
             </div>
 
             <Card style={{ padding: 4, overflowX: "auto" }}>
               <table>
-                <thead><tr><th>Student</th><th>Form</th><th>Subjects</th><th>Fee</th><th>Status</th><th>Method</th><th></th></tr></thead>
+                <thead><tr><th>Student</th><th>Form</th><th>Subjects</th><th>Fee</th><th>Amount paid</th><th>Outstanding</th><th>Status</th><th>Method</th></tr></thead>
                 <tbody>
                   {monthPayments.map((s) => (
                     <tr key={s.id}>
@@ -505,31 +543,74 @@ function TuitionAdmin() {
                         </div>
                       </td>
                       <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(s.fee)}</td>
-                      <td>{s.payStatus === "paid" ? <Pill tone="good">Paid</Pill> : <Pill tone="bad">Unpaid</Pill>}</td>
                       <td>
-                        {s.payStatus === "paid" ? (
+                        <input
+                          type="number"
+                          min="0"
+                          className="input"
+                          value={s.amountPaid || ""}
+                          placeholder="0"
+                          onChange={(e) => setAmountPaid(s.id, s.fee, e.target.value)}
+                          style={{ width: 110, fontVariantNumeric: "tabular-nums" }}
+                        />
+                      </td>
+                      <td style={{
+                        fontWeight: 600, fontVariantNumeric: "tabular-nums",
+                        color: s.balance > 0 ? "#9A3412" : COLORS.slate,
+                      }}>
+                        {fmtMoney(s.balance)}
+                      </td>
+                      <td>
+                        {s.payStatus === "paid" && <Pill tone="good">Paid</Pill>}
+                        {s.payStatus === "partial" && <Pill tone="neutral">Partial</Pill>}
+                        {(s.payStatus === "unpaid" || !s.payStatus) && <Pill tone="bad">Unpaid</Pill>}
+                      </td>
+                      <td>
+                        {s.amountPaid > 0 ? (
                           <select className="input" value={s.method === "—" ? "Cash" : s.method} onChange={(e) => setPaymentMethod(s.id, e.target.value)} style={{ padding: "5px 8px", fontSize: 13, width: 150 }}>
                             <option>Cash</option>
                             <option>Mobile money</option>
                           </select>
                         ) : <span style={{ color: COLORS.slate }}>—</span>}
                       </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                          <button className="mark-btn" onClick={() => togglePayment(s.id, "paid")} style={{
-                            background: s.payStatus === "paid" ? COLORS.teal : "white",
-                            color: s.payStatus === "paid" ? "white" : COLORS.ink,
-                            borderColor: s.payStatus === "paid" ? COLORS.teal : COLORS.border,
-                          }}>Paid</button>
-                          <button className="mark-btn" onClick={() => togglePayment(s.id, "unpaid")} style={{
-                            background: s.payStatus !== "paid" ? COLORS.clay : "white",
-                            color: s.payStatus !== "paid" ? "white" : COLORS.ink,
-                            borderColor: s.payStatus !== "paid" ? COLORS.clay : COLORS.border,
-                          }}>Unpaid</button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </Card>
+          </div>
+        )}
+
+        {view === "outstanding" && (
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600, margin: 0 }}>Outstanding balances</h1>
+              <p style={{ color: COLORS.slate, fontSize: 13.5, margin: "4px 0 0" }}>
+                Everyone who still owes money this month, sorted highest balance first — your follow-up call list.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+              <StatCard label="Total outstanding" value={fmtMoney(outstanding)} accent={COLORS.clay} sub={`${outstandingStudents.length} students`} />
+            </div>
+
+            <Card style={{ padding: 4, overflowX: "auto" }}>
+              <table>
+                <thead><tr><th>Student</th><th>Form</th><th>Phone</th><th>Fee</th><th>Paid</th><th>Outstanding</th></tr></thead>
+                <tbody>
+                  {outstandingStudents.map((s) => (
+                    <tr key={s.id}>
+                      <td style={{ fontWeight: 600 }}>{s.name}</td>
+                      <td style={{ color: COLORS.slate }}>{s.form}</td>
+                      <td style={{ color: COLORS.slate }}>{s.phone || "—"}</td>
+                      <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMoney(s.fee)}</td>
+                      <td style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMoney(s.amountPaid)}</td>
+                      <td style={{ fontWeight: 600, color: "#9A3412", fontVariantNumeric: "tabular-nums" }}>{fmtMoney(s.balance)}</td>
+                    </tr>
+                  ))}
+                  {outstandingStudents.length === 0 && (
+                    <tr><td colSpan="6" style={{ color: COLORS.slate, textAlign: "center", padding: "20px" }}>Nobody has an outstanding balance this month. 🎉</td></tr>
+                  )}
                 </tbody>
               </table>
             </Card>
